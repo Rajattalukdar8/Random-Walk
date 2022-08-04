@@ -1,0 +1,6 @@
+The problem
+- Download genotype information from cbioportal
+- Use random walk with restart on every cancer genome to get
+a stationary distribution on the PPIN
+- Any kind of clustering on top of the
+continuous vectors

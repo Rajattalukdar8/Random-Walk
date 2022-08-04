@@ -1,0 +1,179 @@
+---
+title: "Random walk based clustering of cancer mutation data"
+author: "Rajat"
+date: '2022-04-18'
+output:
+  pdf_document: default
+  html_document: default
+---
+```{r}
+#importing libraries
+library(RandomWalkRestartMH)
+library(igraph)
+```
+
+
+```{r}
+Data=read.csv('/cloud/project/1dna_mutations.csv')
+```
+
+
+```{r}
+head(Data)
+```
+
+
+```{r}
+#getting gene sample and tumor sample barcode
+
+Data=Data[,c("Hugo_Symbol","Tumor_Sample_Barcode")]
+
+```
+
+```{r}
+##Monoplex Disease Network
+```
+
+
+
+
+
+```{r}
+#getting unique values
+
+unique_tumor= unique(Data$Tumor_Sample_Barcode)
+```
+
+
+```{r}
+length(unique_tumor)
+```
+
+```{r}
+#creating matrix
+matrix(rep(0,4312)*length(unique_tumor),ncol=4312)
+
+```
+
+```{r}
+rwn= data.frame()
+```
+
+```{r}
+seed_genes =list()
+```
+
+
+```{r}
+#creating multiple objects for monoplex disease network
+PPI_MultiplexObject <- create.multiplex(list(PPI=PPI_Network))
+PPI_MultiplexObject
+```
+
+```{r}
+AdjMatrix_PPI <- compute.adjacency.matrix(PPI_MultiplexObject)
+AdjMatrixNorm_PPI <- normalize.multiplex.adjacency(AdjMatrix_PPI)
+SeedGene <- c("TP53")  ##setting seed before running RWR-H, taing TP53 as seed gene as in  most cancer this tupmr supressor gene which is the hallmark of cancer is found to be mutated
+```
+
+
+```{r}
+RWR_PPI_Results <- Random.Walk.Restart.Multiplex(AdjMatrixNorm_PPI,
+                        PPI_MultiplexObject,SeedGene)
+# isplaying the results
+RWR_PPI_Results
+
+```
+```{r}
+######heterogeneous network (an igraph object) with the top scored genes
+```
+
+
+```{r}
+TopResults_PPI <-
+    create.multiplexNetwork.topResults(RWR_PPI_Results,PPI_MultiplexObject,
+        k=15)   #inducing a network with the Top 15 genes.
+```
+
+
+
+
+```{r}
+####cluster and its interactions
+```
+
+
+```{r}
+par(mar=c(0.1,0.1,0.1,0.1))
+plot(TopResults_PPI, vertex.label.color="black",vertex.frame.color="#ffffff",
+    vertex.size= 20, edge.curved=.2,
+    vertex.color = ifelse(igraph::V(TopResults_PPI)$name == "TP53","yellow",
+    "#00CCFF"), edge.color="blue",edge.width=0.8)
+```
+```{r}
+## Representation of Network  of the top 15 ranked genes when the RWR is performed using the TP53 gene being the yellow node as the seed gene and the blue edges denotes protein protein interactions.
+```
+
+```{r}
+##Random Walk with Restart on a Multiplex Network
+```
+
+
+
+
+
+```{r}
+##creating  two layers Multiplex object
+PPI_PATH_Multiplex <- 
+  create.multiplex(list(PPI=PPI_Network,PATH=Pathway_Network))
+PPI_PATH_Multiplex
+```
+
+
+```{r}
+
+# computing and normalizing the adjacency matrix of the multiplex network.
+AdjMatrix_PPI_PATH <- compute.adjacency.matrix(PPI_PATH_Multiplex)
+AdjMatrixNorm_PPI_PATH <- normalize.multiplex.adjacency(AdjMatrix_PPI_PATH)
+```
+
+```{r}
+
+RWR_PPI_PATH_Results <- Random.Walk.Restart.Multiplex(AdjMatrixNorm_PPI_PATH,
+                        PPI_PATH_Multiplex,SeedGene)
+# displaying  the results
+RWR_PPI_PATH_Results
+```
+
+
+```{r}
+#multiplex network  with the top scored genes.
+```
+
+
+```{r}
+TopResults_PPI_PATH <-
+    create.multiplexNetwork.topResults(RWR_PPI_PATH_Results, PPI_PATH_Multiplex, 
+      k=15) # inducing  a multiplex network with the Top 15 genes.
+```
+
+```{r}
+
+par(mar=c(0.1,0.1,0.1,0.1))
+plot(TopResults_PPI_PATH, vertex.label.color="black",
+    vertex.frame.color="#ffffff", vertex.size= 20,
+    edge.curved= ifelse(E(TopResults_PPI_PATH)$type == "PPI",
+                    0.4,0),
+    vertex.color = ifelse(igraph::V(TopResults_PPI_PATH)$name == "TP53",
+                    "yellow","#00CCFF"),edge.width=0.8,
+    edge.color=ifelse(E(TopResults_PPI_PATH)$type == "PPI",
+                      "blue","red"))
+```
+
+
+```{r}
+##Representation  pf network of the top 15 ranked genes when the RWR-M is im[limented] executed using the TP53 gene which is yellow node. Blue curved edges are Protein protein interactions and red straight edges are the  Pathways links.
+```
+
+
+
